@@ -7,13 +7,11 @@ import { Toaster } from 'react-hot-toast';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CashFlow Pro - Business Cash Management',
-  description: 'Professional cash management solution for growing businesses',
+  title: 'CashApp - Business Cash Management',
+  description: 'Professional cash management solution for growing businesses in India',
   manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'CashFlow Pro',
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
 };
 
