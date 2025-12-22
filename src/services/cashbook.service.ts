@@ -44,7 +44,7 @@ export const cashbookService = {
   updateEntry: async (
     businessId: string, 
     entryId: string, 
-    data: CreateCashEntryRequest
+    data: CreateCashEntryRequest & { modificationReason?: string }
   ): Promise<CashEntry> => {
     const response = await api.put<ApiResponse<CashEntry>>(
       `/business/${businessId}/cashbook/${entryId}`,
@@ -53,8 +53,12 @@ export const cashbookService = {
     return response.data.data!;
   },
 
-  deleteEntry: async (businessId: string, entryId: string): Promise<void> => {
-    await api.delete(`/business/${businessId}/cashbook/${entryId}`);
+  deleteEntry: async (businessId: string, entryId: string, reason?: string): Promise<{ message?: string }> => {
+    const response = await api.delete<ApiResponse<boolean>>(
+      `/business/${businessId}/cashbook/${entryId}`,
+      { data: reason ? { reason } : undefined }
+    );
+    return { message: response.data.message };
   },
 
   getSummary: async (businessId: string): Promise<CashbookSummary> => {

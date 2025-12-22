@@ -15,10 +15,12 @@ import {
   ChevronDown,
   PlusCircle,
   BookUser,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuthStore, useBusinessStore } from '@/store';
 import { businessService } from '@/services/business';
 import toast from 'react-hot-toast';
+import NotificationBell from '@/components/NotificationBell';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -28,6 +30,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Transactions', href: '/dashboard/cashbook', icon: BarChart3 },
   { name: 'Parties', href: '/dashboard/parties', icon: BookUser },
+  { name: 'Change Requests', href: '/dashboard/change-requests', icon: ClipboardList },
   { name: 'Team', href: '/dashboard/staff', icon: Users },
   { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
@@ -277,21 +280,29 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main content */}
       <div className="lg:pl-64 flex flex-col min-h-screen">
+        {/* Desktop header with notification */}
+        <div className="hidden lg:flex sticky top-0 z-10 h-16 bg-white border-b px-6 items-center justify-end">
+          <NotificationBell />
+        </div>
+        
         {/* Mobile header */}
-        <div className="sticky top-0 z-10 flex items-center h-16 bg-white border-b px-4 lg:hidden">
-          <button
-            type="button"
-            className="p-2 -ml-2 text-gray-500 hover:text-gray-900"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <div className="flex items-center gap-2 ml-3">
-            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">₹</span>
+        <div className="sticky top-0 z-10 flex items-center justify-between h-16 bg-white border-b px-4 lg:hidden">
+          <div className="flex items-center">
+            <button
+              type="button"
+              className="p-2 -ml-2 text-gray-500 hover:text-gray-900"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <div className="flex items-center gap-2 ml-3">
+              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm font-bold">₹</span>
+              </div>
+              <span className="font-bold text-gray-800">Cash Manager</span>
             </div>
-            <span className="font-bold text-gray-800">Cash Manager</span>
           </div>
+          <NotificationBell />
         </div>
 
         {/* Page content */}

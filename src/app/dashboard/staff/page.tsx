@@ -28,6 +28,7 @@ export default function StaffPage() {
     lastName: string;
     role: 'Accountant' | 'Viewer';
     canDeleteEntries: boolean;
+    requiresApproval: boolean;
   }>({
     email: '',
     phoneNumber: '',
@@ -35,6 +36,7 @@ export default function StaffPage() {
     lastName: '',
     role: 'Accountant',
     canDeleteEntries: false,
+    requiresApproval: true, // Default: requires approval for changes
   });
 
   useEffect(() => {
@@ -86,10 +88,11 @@ export default function StaffPage() {
         lastName: inviteForm.lastName || undefined,
         role: inviteForm.role,
         canDeleteEntries: inviteForm.canDeleteEntries,
+        requiresApproval: inviteForm.requiresApproval,
       });
       toast.success('Staff member added successfully!');
       setInviteModalOpen(false);
-      setInviteForm({ email: '', phoneNumber: '', firstName: '', lastName: '', role: 'Accountant', canDeleteEntries: false });
+      setInviteForm({ email: '', phoneNumber: '', firstName: '', lastName: '', role: 'Accountant', canDeleteEntries: false, requiresApproval: true });
       fetchStaff();
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to add staff member';
@@ -312,7 +315,7 @@ export default function StaffPage() {
                             type="checkbox"
                             checked={member.canDeleteEntries || false}
                             onChange={(e) => {
-                              staffService.updateStaffRole(currentBusiness!.id, member.id, member.role as 'Accountant' | 'Viewer', e.target.checked)
+                              staffService.updateStaffRole(currentBusiness!.id, member.id, member.role as 'Accountant' | 'Viewer', e.target.checked, member.requiresApproval)
                                 .then(() => {
                                   toast.success('Permission updated');
                                   fetchStaff();
@@ -322,6 +325,31 @@ export default function StaffPage() {
                             className="sr-only peer"
                           />
                           <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                        </label>
+                      </div>
+                    )}
+                    {/* Approval Permission Toggle for Non-Owners */}
+                    {member.role !== 'Owner' && (
+                      <div className="mt-2 flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100">
+                        <div>
+                          <span className="text-xs text-gray-700 font-medium">Access Type</span>
+                          <p className="text-[10px] text-gray-500">{member.requiresApproval !== false ? 'Needs approval' : 'Full access'}</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={member.requiresApproval !== false}
+                            onChange={(e) => {
+                              staffService.updateStaffRole(currentBusiness!.id, member.id, member.role as 'Accountant' | 'Viewer', member.canDeleteEntries, e.target.checked)
+                                .then(() => {
+                                  toast.success(e.target.checked ? 'Now requires approval' : 'Full access granted');
+                                  fetchStaff();
+                                })
+                                .catch(() => toast.error('Failed to update permission'));
+                            }}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-green-500 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
                         </label>
                       </div>
                     )}
@@ -342,6 +370,9 @@ export default function StaffPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Delete Permission
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Access Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -416,7 +447,7 @@ export default function StaffPage() {
                           type="checkbox"
                           checked={member.canDeleteEntries || false}
                           onChange={(e) => {
-                            staffService.updateStaffRole(currentBusiness!.id, member.id, member.role as 'Accountant' | 'Viewer', e.target.checked)
+                            staffService.updateStaffRole(currentBusiness!.id, member.id, member.role as 'Accountant' | 'Viewer', e.target.checked, member.requiresApproval)
                               .then(() => {
                                 toast.success('Permission updated');
                                 fetchStaff();
@@ -428,6 +459,31 @@ export default function StaffPage() {
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
                         <span className={`ml-2 text-xs font-medium ${member.canDeleteEntries ? 'text-red-600' : 'text-gray-500'}`}>
                           {member.canDeleteEntries ? 'Allowed' : 'Not allowed'}
+                        </span>
+                      </label>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {member.role === 'Owner' ? (
+                      <span className="text-xs text-gray-400">Full access</span>
+                    ) : (
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={member.requiresApproval !== false}
+                          onChange={(e) => {
+                            staffService.updateStaffRole(currentBusiness!.id, member.id, member.role as 'Accountant' | 'Viewer', member.canDeleteEntries, e.target.checked)
+                              .then(() => {
+                                toast.success(e.target.checked ? 'Now requires approval' : 'Full access granted');
+                                fetchStaff();
+                              })
+                              .catch(() => toast.error('Failed to update permission'));
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-green-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                        <span className={`ml-2 text-xs font-medium ${member.requiresApproval !== false ? 'text-orange-600' : 'text-green-600'}`}>
+                          {member.requiresApproval !== false ? 'Needs Approval' : 'Full Access'}
                         </span>
                       </label>
                     )}
@@ -595,6 +651,29 @@ export default function StaffPage() {
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Access Type Permission */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Requires Approval for Changes</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {inviteForm.requiresApproval 
+                        ? 'Member must request approval to edit/delete entries' 
+                        : 'Member can directly edit/delete entries without approval'}
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={inviteForm.requiresApproval}
+                      onChange={(e) => setInviteForm({ ...inviteForm, requiresApproval: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-green-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
                   </div>
                 </label>
               </div>

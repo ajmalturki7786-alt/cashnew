@@ -5,3 +5,5 @@ export * from './bank.service';
 export * from './category.service';
 export * from './staff.service';
 export * from './report.service';
+export * from './changeRequest.service';
+export * from './notification.service';

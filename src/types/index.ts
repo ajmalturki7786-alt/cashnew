@@ -65,6 +65,7 @@ export interface Business {
   isActive: boolean;
   userRole: string;
   canDeleteEntries?: boolean;
+  requiresApproval?: boolean; // If true, user needs approval for changes
   createdAt: string;
 }
 
@@ -74,6 +75,7 @@ export interface BusinessSummary {
   currency: string;
   userRole: string;
   canDeleteEntries?: boolean;
+  requiresApproval?: boolean; // If true, user needs approval for changes
 }
 
 export interface CreateBusinessRequest {
@@ -226,6 +228,7 @@ export interface Staff {
   role: 'Owner' | 'Accountant' | 'Viewer';
   isActive: boolean;
   canDeleteEntries?: boolean;
+  requiresApproval?: boolean; // If true, user needs owner approval for changes
   joinedAt?: string;
   createdAt?: string;
 }
@@ -237,6 +240,7 @@ export interface InviteStaffRequest {
   lastName?: string;
   role: 'Accountant' | 'Viewer';
   canDeleteEntries?: boolean;
+  requiresApproval?: boolean; // If true, user needs owner approval for changes (default: true)
 }
 
 // Report Types
@@ -346,6 +350,83 @@ export interface CashEntryReportItem {
   amount: number;
   balance: number;
   createdBy: string;
+}
+
+// Change Request Types
+export type ChangeRequestType = 'Update' | 'Delete';
+export type ChangeRequestStatus = 'Pending' | 'Approved' | 'Rejected';
+
+export interface ChangeRequest {
+  id: string;
+  businessId: string;
+  entryId: string;
+  requestType: ChangeRequestType;
+  reason: string;
+  status: ChangeRequestStatus;
+  proposedChanges?: string;
+  originalData?: string;
+  requestedByUserId: string;
+  requestedByUserName: string;
+  reviewedByUserId?: string;
+  reviewedByUserName?: string;
+  reviewNotes?: string;
+  createdAt: string;
+  reviewedAt?: string;
+  entryAmount?: number;
+  entryType?: string;
+  entryDescription?: string;
+  entryDate?: string;
+}
+
+export interface CreateChangeRequest {
+  entryId: string;
+  requestType: ChangeRequestType;
+  reason: string;
+  proposedChanges?: {
+    type?: string;
+    amount?: number;
+    entryDate?: string;
+    categoryId?: string;
+    description?: string;
+    reference?: string;
+    partyName?: string;
+    partyId?: string;
+    dueDate?: string;
+  };
+}
+
+export interface ReviewChangeRequest {
+  approve: boolean;
+  reviewNotes?: string;
+}
+
+export interface ChangeRequestSummary {
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  totalCount: number;
+}
+
+// Notification Types
+export type NotificationType = 'ChangeRequestCreated' | 'ChangeRequestApproved' | 'ChangeRequestRejected' | 'General';
+
+export interface Notification {
+  id: string;
+  businessId: string;
+  businessName: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  referenceId?: string;
+  referenceType?: string;
+  isRead: boolean;
+  readAt?: string;
+  createdAt: string;
+}
+
+export interface NotificationSummary {
+  unreadCount: number;
+  totalCount: number;
 }
 
 // Common Types

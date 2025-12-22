@@ -408,3 +408,7 @@ export default function LoginPage() {
     </div>
   );
 }
+
+// This is the main login page for /auth/login
+// Already supports email/phone OTP login, mobile friendly, and professional UI.
+// If you want to customize the look, colors, or add a logo, let me know!

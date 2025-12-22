@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { AuthResponse } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:53676/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cashapp.runasp.net/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

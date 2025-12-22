@@ -35,12 +35,13 @@ import { useBusinessStore } from '@/store';
 import { cashbookService } from '@/services/cashbook';
 import { categoryService } from '@/services/category';
 import { partyService, PartySearchResult } from '@/services/party.service';
+import { businessService } from '@/services/business.service';
 import { CashEntry, Category } from '@/types';
 import { formatInTimezone, getDateStringInTimezone, getTimeStringInTimezone } from '@/lib/timezone';
 import toast from 'react-hot-toast';
 
 export default function CashbookPage() {
-  const { currentBusiness } = useBusinessStore();
+  const { currentBusiness, setCurrentBusiness, setBusinesses } = useBusinessStore();
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,9 +52,14 @@ export default function CashbookPage() {
   const [selectedEntry, setSelectedEntry] = useState<CashEntry | null>(null);
   const [modificationReason, setModificationReason] = useState('');
   const [showModificationReasonModal, setShowModificationReasonModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
   
+  // Check if user is owner
+  const isOwner = currentBusiness?.userRole === 'Owner';
   // Check if user can delete entries (owner or has permission)
   const canDeleteEntries = currentBusiness?.userRole === 'Owner' || currentBusiness?.canDeleteEntries === true;
+  // Check if user requires approval for changes
+  const requiresApproval = currentBusiness?.requiresApproval === true;
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,6 +118,28 @@ export default function CashbookPage() {
     reference: '',
     dueDate: '',
   });
+
+  // Refresh business data on page load to ensure we have the latest permissions
+  useEffect(() => {
+    const refreshBusinessData = async () => {
+      try {
+        const businesses = await businessService.getBusinesses();
+        console.log('Refreshed businesses:', businesses);
+        setBusinesses(businesses);
+        // Update currentBusiness with fresh data
+        if (currentBusiness) {
+          const updatedBusiness = businesses.find(b => b.id === currentBusiness.id);
+          console.log('Updated business:', updatedBusiness);
+          if (updatedBusiness) {
+            setCurrentBusiness(updatedBusiness);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to refresh business data:', error);
+      }
+    };
+    refreshBusinessData();
+  }, []); // Run only once on page load
 
   useEffect(() => {
     if (currentBusiness) {
@@ -172,8 +200,8 @@ export default function CashbookPage() {
       return;
     }
 
-    // If editing, show modification reason modal
-    if (editingEntry && !modificationReason) {
+    // If editing and user requires approval, show modification reason modal
+    if (editingEntry && requiresApproval && !modificationReason) {
       setShowModificationReasonModal(true);
       return;
     }
@@ -195,14 +223,19 @@ export default function CashbookPage() {
           partyId: formData.partyId || undefined,
           dueDate: formData.dueDate || undefined,
         };
-        await cashbookService.updateEntry(currentBusiness.id, editingEntry.id, payload);
+        const result = await cashbookService.updateEntry(currentBusiness.id, editingEntry.id, payload);
         
-        // Upload attachment if selected
-        if (selectedFile) {
+        // Upload attachment if selected and entry was directly updated
+        if (selectedFile && result) {
           await cashbookService.uploadAttachment(currentBusiness.id, editingEntry.id, selectedFile);
         }
         
-        toast.success('Entry updated successfully');
+        // Check if this was a change request (accountant submitting)
+        if (!result || !result.id) {
+          toast.success('Update request submitted for owner approval');
+        } else {
+          toast.success('Entry updated successfully');
+        }
       } else {
         const payload = {
           type: formData.type,
@@ -272,10 +305,28 @@ export default function CashbookPage() {
     if (!currentBusiness || !selectedEntry) return;
 
     try {
-      await cashbookService.deleteEntry(currentBusiness.id, selectedEntry.id);
-      toast.success('Entry deleted successfully');
+      // Only require reason if user requires approval
+      if (requiresApproval && !deleteReason.trim()) {
+        toast.error('Please provide a reason for deletion');
+        return;
+      }
+
+      const result = await cashbookService.deleteEntry(
+        currentBusiness.id, 
+        selectedEntry.id,
+        requiresApproval ? deleteReason : undefined
+      );
+      
+      // Check if it was a change request submission
+      if (result.message?.includes('request') || result.message?.includes('approval')) {
+        toast.success(result.message || 'Delete request submitted for approval');
+      } else {
+        toast.success('Entry deleted successfully');
+      }
+      
       setDeleteModalOpen(false);
       setSelectedEntry(null);
+      setDeleteReason('');
       fetchEntries();
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to delete entry';
@@ -1263,20 +1314,40 @@ export default function CashbookPage() {
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Entry</h3>
             <p className="text-gray-500 mb-4">
-              Are you sure you want to delete this entry? This action cannot be undone.
+              {requiresApproval 
+                ? 'This request will be sent to the owner for approval.'
+                : 'Are you sure you want to delete this entry? This action cannot be undone.'}
             </p>
+            
+            {/* Show reason input only when approval is required */}
+            {requiresApproval && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reason for deletion <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="Please explain why this entry should be deleted..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  rows={3}
+                />
+              </div>
+            )}
+            
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => {
                   setDeleteModalOpen(false);
                   setSelectedEntry(null);
+                  setDeleteReason('');
                 }}
                 className="btn-secondary"
               >
                 Cancel
               </button>
               <button onClick={handleDelete} className="btn-danger">
-                Delete
+                {requiresApproval ? 'Submit Request' : 'Delete'}
               </button>
             </div>
           </div>

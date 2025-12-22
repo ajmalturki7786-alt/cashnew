@@ -29,11 +29,16 @@ export const staffService = {
     businessId: string, 
     staffId: string, 
     role: 'Accountant' | 'Viewer',
-    canDeleteEntries?: boolean
+    canDeleteEntries?: boolean,
+    requiresApproval?: boolean
   ): Promise<Staff> => {
     const response = await api.put<ApiResponse<Staff>>(
       `/business/${businessId}/staff/${staffId}/role`,
-      { role, canDeleteEntries: canDeleteEntries ?? false }
+      { 
+        role, 
+        canDeleteEntries: canDeleteEntries ?? false,
+        requiresApproval: requiresApproval ?? true
+      }
     );
     return response.data.data!;
   },
