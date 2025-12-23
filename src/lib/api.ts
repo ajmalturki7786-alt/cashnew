@@ -22,11 +22,21 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for token refresh
+// Response interceptor for token refresh and blocked user handling
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    
+    // Handle blocked user (403 Forbidden)
+    if (error.response?.status === 403) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      alert('Your account has been blocked. Please contact administrator.');
+      window.location.href = '/auth/login';
+      return Promise.reject(error);
+    }
     
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
