@@ -4,9 +4,16 @@ import type { NextRequest } from 'next/server';
 // Protected routes that require authentication
 const protectedRoutes = ['/dashboard'];
 const authRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password'];
+const adminRoutes = ['/admin', '/xadmin2024'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Skip middleware for admin routes - handled client-side
+  const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
+  if (isAdminRoute) {
+    return NextResponse.next();
+  }
   
   // Check if there's an auth token in cookies or localStorage
   // Note: middleware runs on the edge, so we can only check cookies

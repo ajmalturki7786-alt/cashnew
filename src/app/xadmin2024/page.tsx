@@ -55,10 +55,14 @@ export default function AdminLoginPage() {
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('refreshToken', response.refreshToken);
       
+      // Small delay to ensure token is set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const isAdmin = await adminService.checkAdminStatus();
+      console.log('Admin status:', isAdmin);
       
       if (isAdmin) {
-        router.push('/admin');
+        window.location.href = '/admin';
       } else {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
