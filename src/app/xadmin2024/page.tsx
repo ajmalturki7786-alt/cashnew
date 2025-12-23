@@ -9,7 +9,8 @@ import { Shield, Eye, EyeOff, Lock, Mail, Phone } from 'lucide-react';
 export default function AdminLoginPage() {
   const router = useRouter();
   const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('otp');
-  const [email, setEmail] = useState('');
+  const [identifierType, setIdentifierType] = useState<'email' | 'phone'>('email');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -18,8 +19,8 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
 
   const handleSendOtp = async () => {
-    if (!email) {
-      setError('Please enter email');
+    if (!identifier) {
+      setError(`Please enter ${identifierType === 'email' ? 'email' : 'phone number'}`);
       return;
     }
     setError('');
@@ -27,9 +28,9 @@ export default function AdminLoginPage() {
 
     try {
       await authService.sendOtp({
-        identifier: email,
-        identifierType: 'email',
-        channel: 'email'
+        identifier: identifier,
+        identifierType: identifierType,
+        channel: identifierType === 'email' ? 'email' : 'sms'
       });
       setOtpSent(true);
     } catch (err: any) {
@@ -47,8 +48,8 @@ export default function AdminLoginPage() {
 
     try {
       const response = await authService.verifyOtp({
-        identifier: email,
-        identifierType: 'email',
+        identifier: identifier,
+        identifierType: identifierType,
         otp: otp
       });
       
@@ -82,7 +83,7 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ email: identifier, password });
       
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('refreshToken', response.refreshToken);
@@ -117,7 +118,7 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Login Method Toggle */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-4">
           <button
             onClick={() => { setLoginMethod('otp'); setOtpSent(false); setError(''); }}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -142,6 +143,34 @@ export default function AdminLoginPage() {
           </button>
         </div>
 
+        {/* Email/Phone Toggle - Only for OTP login */}
+        {loginMethod === 'otp' && (
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => { setIdentifierType('email'); setIdentifier(''); setOtpSent(false); setError(''); }}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                identifierType === 'email'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              <Mail className="w-4 h-4 inline mr-2" />
+              Email
+            </button>
+            <button
+              onClick={() => { setIdentifierType('phone'); setIdentifier(''); setOtpSent(false); setError(''); }}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                identifierType === 'phone'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              <Phone className="w-4 h-4 inline mr-2" />
+              Phone
+            </button>
+          </div>
+        )}
+
         {/* Login Form */}
         <div className="bg-gray-800 rounded-2xl p-8 shadow-2xl border border-gray-700">
           {error && (
@@ -155,35 +184,40 @@ export default function AdminLoginPage() {
             <form onSubmit={handleOtpLogin} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Email
+                  {identifierType === 'email' ? 'Email' : 'Phone Number'}
                 </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type={identifierType === 'email' ? 'email' : 'tel'}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   required
                   disabled={otpSent}
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
-                  placeholder="admin@cashapp.com"
+                  placeholder={identifierType === 'email' ? 'admin@cashapp.com' : '9876543210'}
                 />
               </div>
 
               {!otpSent ? (
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={loading}
-                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Mail className="w-5 h-5" />
-                      Send OTP
-                    </>
-                  )}
-                </button>
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={loading}
+                    className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        {identifierType === 'email' ? <Mail className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
+                        Send OTP
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-yellow-400 mt-3 text-center bg-yellow-500/10 p-2 rounded-lg">
+                    📌 Demo OTP: <span className="font-mono font-bold">111111</span> (Use this for testing)
+                  </p>
+                </div>
               ) : (
                 <>
                   <div>
@@ -200,14 +234,17 @@ export default function AdminLoginPage() {
                       placeholder="123456"
                     />
                     <p className="text-xs text-gray-400 mt-2">
-                      OTP sent to {email} • 
+                      OTP sent to {identifier} • 
                       <button 
                         type="button" 
                         onClick={() => setOtpSent(false)}
                         className="text-red-400 hover:text-red-300 ml-1"
                       >
-                        Change email
+                        Change {identifierType === 'email' ? 'email' : 'phone'}
                       </button>
+                    </p>
+                    <p className="text-xs text-yellow-400 mt-2 text-center bg-yellow-500/10 p-2 rounded-lg">
+                      📌 Demo OTP: <span className="font-mono font-bold">111111</span>
                     </p>
                   </div>
 
@@ -237,8 +274,8 @@ export default function AdminLoginPage() {
                 </label>
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   required
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   placeholder="admin@example.com"
